@@ -1,6 +1,10 @@
+
 #include <ncurses.h>
 #include <unistd.h>
 #include <algorithm>
+#include <stdio.h>
+#include <locale.h>
+
 struct Pos{
 	int x;
 	int y;
@@ -30,11 +34,26 @@ void SetFood(Food &food,const int value, Pos *Snake,const int &l);
 void SetFood(Food &food,const int value, Pos *Snake,const int &l){
 	
 	do{
-		food.Coord.x = rand()%max_X;
-		food.Coord.y = rand()%max_Y;
+		food.Coord.x = rand()%max_X+1;
+		food.Coord.y = rand()%max_Y+1;
 	}while(Collision(Snake,food.Coord,l));
 	food.value = value;
+	attron(COLOR_PAIR(10));
 	PrintOnPos(food.Coord,char(value+48));
+	refresh();
+}
+
+void FoodBlinck(Food &food, bool &why){
+	if (why){
+		attron(COLOR_PAIR(11));
+		PrintOnPos(food.Coord,char(food.value+48));
+		refresh();	
+	}else{
+		attron(COLOR_PAIR(10));
+		PrintOnPos(food.Coord,char(food.value+48));
+		refresh();
+	}
+	why = !why;
 }
 
 bool Collision(Pos *Snake, const Pos &Coord, const int &l){
@@ -45,22 +64,38 @@ bool Collision(Pos *Snake, const Pos &Coord, const int &l){
 }
 
 void PrintOnPos(const Pos Coord, const char &c){
-	move(Coord.y, Coord.x);
+	move(Coord.y, 2*Coord.x);
+	addch(c);
 	addch(c);
 }
 
 void DrawSnake(Pos *Snake, const int &l,char c){
 	for (int i=0;i<l;i++){
-		if (c == ' '){
-			PrintOnPos(Snake[i],c);
-		}else{
-			PrintOnPos(Snake[i],Snake[i].symbol);		
-		}
+		
+		if (c!=' ') attron(COLOR_PAIR(3+rand()%7));			
+		PrintOnPos(Snake[i],c);	
+		if (c!='c') refresh();	
 	}
 }
 
 int main(){
+
 	initscr();
+	start_color();
+	setlocale(LC_CTYPE,"");
+	curs_set(0);
+        init_pair(4,  COLOR_YELLOW,  COLOR_YELLOW);
+        init_pair(5,  COLOR_BLUE,    COLOR_BLUE);
+        init_pair(6,  COLOR_MAGENTA, COLOR_MAGENTA);
+        init_pair(7,  COLOR_CYAN,    COLOR_CYAN);
+        init_pair(8,  COLOR_BLUE,    COLOR_BLUE);
+        init_pair(9,  COLOR_WHITE,   COLOR_WHITE);
+	init_pair(3, COLOR_GREEN, COLOR_GREEN );
+	init_pair(2, COLOR_BLUE, COLOR_BLACK );
+	init_pair(1, COLOR_BLUE, COLOR_BLUE );
+	init_pair(10, COLOR_WHITE, COLOR_BLACK );
+	init_pair(11, COLOR_RED, COLOR_BLACK );
+	attron(COLOR_PAIR(1));
 
 	for (int i=0;i<max_X+2;i++){
 		PrintOnPos({i,0},'0');
@@ -72,31 +107,36 @@ int main(){
 	}
 	Pos Snake[max_X*max_Y];
 	int l = 4;
+	refresh();
+	attron(COLOR_PAIR(1));
 	for (int i=0;i<l;i++){
 		Snake[i].x = 5;
 		Snake[i].y = 15;
 		Snake[i].symbol = '#';
 		PrintOnPos(Snake[i],'#');	
 	}
+	
 	refresh();
 	Pos dPos[4] = {{1,0},{-1,0},{0,-1},{0,1}};
 	int dir = 1;
 	noecho();
-	halfdelay(1);
-
+	nodelay(stdscr, TRUE);
 	Food food;
-
+	attron(COLOR_PAIR(2));
+			
 	SetFood(food,rand()%4+1,Snake,l);
-
+	refresh();
 	bool GameOver = false;
 	int score = 0;
 	int CurrentIndex = 0;
 	Pos HeadCoord = Snake[0];
 	HeadCoord.symbol = '#';
+	bool why = true;
 	while(!GameOver){
-		
-		move (2,max_X +6);
+		attron(COLOR_PAIR(10));
+		move(2,max_X*2 +6);
 		printw("%s%i","Score: ",score);
+		refresh();
 		int ch = getch();
 		
 		switch (ch) {
@@ -105,7 +145,7 @@ int main(){
 		    case 'a':  if (dir!=0) dir = 1; break;
 		    case 'd':  if (dir!=1) dir = 0; break;
 		}
-
+		fflush(stdin);
 		Pos NextPos = HeadCoord + dPos[dir];
 		if (NextPos.x > max_X){
 			NextPos.x = 1;			
@@ -119,20 +159,22 @@ int main(){
 		if (NextPos.y < 1){
 			NextPos.y = max_Y;		
 		}
+		
+		
+		
 		GameOver = Collision(Snake,NextPos,l);
 		if (!GameOver){
 			
-			
+			attron(COLOR_PAIR(2));
 			DrawSnake(Snake,l,' ');
-			//PrintOnPos(Snake[CurrentIndex],' ');	
+			refresh();
 			HeadCoord = NextPos;
-			//PrintOnPos(HeadCoord,'#');
 			Snake[CurrentIndex] = HeadCoord;
-			Snake[CurrentIndex].symbol = '#';
 			CurrentIndex++;
 			if (CurrentIndex >= l){
 				CurrentIndex = 0;
-			}	
+			}
+				
 			DrawSnake(Snake,l,'#');
 			if (food.Coord == HeadCoord){
 				for (int j=0;j<food.value;j++){
@@ -141,11 +183,13 @@ int main(){
 					l++;	
 				}
 				score+=food.value;
-				SetFood(food,rand()%4+1,Snake,l);			
+				
+				SetFood(food,rand()%4+1,Snake,l);
+							
 			}
 			
-			refresh();
 		}
+		FoodBlinck(food,why);
 		unsigned int ms = 100000;
 		usleep(ms);	
 	}
