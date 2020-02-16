@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <stdio.h>
 #include <locale.h>
-
+#include <time.h>
 struct Pos{
 	int x;
 	int y;
@@ -123,7 +123,7 @@ int main(){
 	nodelay(stdscr, TRUE);
 	Food food;
 	attron(COLOR_PAIR(2));
-			
+	srand(time(NULL));		
 	SetFood(food,rand()%4+1,Snake,l);
 	refresh();
 	bool GameOver = false;
