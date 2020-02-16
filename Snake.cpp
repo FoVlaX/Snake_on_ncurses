@@ -145,7 +145,8 @@ int main(){
 		    case 'a':  if (dir!=0) dir = 1; break;
 		    case 'd':  if (dir!=1) dir = 0; break;
 		}
-		fflush(stdin);
+		char c[100];
+		scanw("%s",&c);
 		Pos NextPos = HeadCoord + dPos[dir];
 		if (NextPos.x > max_X){
 			NextPos.x = 1;			
