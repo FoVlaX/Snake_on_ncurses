@@ -1,1 +1,0 @@
-gcc snake.cpp -lncurses -o snake.o -fpermissive -lstdc++
